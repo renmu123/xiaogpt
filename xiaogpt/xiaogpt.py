@@ -41,6 +41,9 @@ from xiaogpt.utils import (
     parse_cookie_string,
 )
 
+from .skills import Skills
+
+
 EOF = object()
 
 
@@ -102,9 +105,9 @@ class MiGPT:
                 self.log.debug("Polling_event, timestamp: %s", self.last_timestamp)
                 await self.polling_event.wait()
                 if (
-                    self.config.mute_xiaoai
-                    and new_record
-                    and self.need_ask_gpt(new_record)
+                        self.config.mute_xiaoai
+                        and new_record
+                        and self.need_ask_gpt(new_record)
                 ):
                     await self.stop_if_xiaoai_is_playing()
                 if (d := time.perf_counter() - start) < 1:
@@ -213,9 +216,9 @@ class MiGPT:
     def need_ask_gpt(self, record):
         query = record.get("query", "")
         return (
-            self.in_conversation
-            and not query.startswith(WAKEUP_KEYWORD)
-            or query.startswith(tuple(self.config.keyword))
+                self.in_conversation
+                and not query.startswith(WAKEUP_KEYWORD)
+                or query.startswith(tuple(self.config.keyword))
         )
 
     def need_change_prompt(self, record):
@@ -320,7 +323,7 @@ class MiGPT:
     async def get_file_url(self, stream):
         if self.config.localhost:
             with tempfile.NamedTemporaryFile(
-                "wb", suffix=".mp3", delete=False, dir=self.temp_dir.name
+                    "wb", suffix=".mp3", delete=False, dir=self.temp_dir.name
             ) as f:
                 shutil.copyfileobj(stream, f)
                 return f"http://{self.hostname}:{self.port}/{os.path.basename(f.name)}"
@@ -392,7 +395,7 @@ class MiGPT:
             async with ClientSession(trust_env=True) as session:
                 openai.aiosession.set(session)
                 async for message in self.chatbot.ask_stream(
-                    query, **self.config.gpt_options
+                        query, **self.config.gpt_options
                 ):
                     await queue.put(message)
 
@@ -426,8 +429,8 @@ class MiGPT:
         playing_info = await self.mina_service.player_get_status(self.device_id)
         # WTF xiaomi api
         is_playing = (
-            json.loads(playing_info.get("data", {}).get("info", "{}")).get("status", -1)
-            == 1
+                json.loads(playing_info.get("data", {}).get("info", "{}")).get("status", -1)
+                == 1
         )
         return is_playing
 
@@ -503,14 +506,18 @@ class MiGPT:
                 except IndexError:
                     print("小爱没回")
                 print(f"以下是 {ask_name} 的回答: ", end="")
+                skills = Skills()
                 try:
                     if not self.config.enable_edge_tts:
-                        async for message in self.ask_gpt(query):
-                            await self.do_tts(message, wait_for_finish=True)
+                        message = skills.handle(query)
+                        # async for message in self.ask_gpt(query):
+                        await self.do_tts(message, wait_for_finish=True)
+                        # async for message in self.ask_gpt(query):
+                        #     await self.do_tts(message, wait_for_finish=True)
                     else:
                         tts_lang = (
-                            find_key_by_partial_string(EDGE_TTS_DICT, query)
-                            or self.config.edge_tts_voice
+                                find_key_by_partial_string(EDGE_TTS_DICT, query)
+                                or self.config.edge_tts_voice
                         )
                         # tts with edge_tts
                         await self.edge_tts(self.ask_gpt(query), tts_lang)
